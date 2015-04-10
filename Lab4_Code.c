@@ -25,13 +25,13 @@ unsigned int PCACounter = 0;
 __sbit __at 0xB7 RUN;
 	
 
-void Port_Init(void)
-void XBR0_Init(void)
-void SMBus_Init(void)
-void ADC_Init(void)
-void Interrupt_Init(void)
-void PCA_Init(void)
-void Output_Init(void)
+void Port_Init(void);
+void XBR0_Init(void);
+void SMBus_Init(void);
+void ADC_Init(void);
+void Interrupt_Init(void);
+void PCA_Init(void);
+void Output_Init(void);
 	
 void PCA_ISR( void ) __interrupt 9;
 	
@@ -47,7 +47,7 @@ int pick_range(void);
 	
 void main(void) {
 	//Local Variables
-	unsigned char run_stop
+	unsigned char run_stop;
 	//Initialization Functions
 	Sys_Init();
 	putchar(' ');
@@ -59,6 +59,9 @@ void main(void) {
 	PCA_Init();
 	Output_Init();
 	
+	lcd_clear();
+    lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
+	/*
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -84,7 +87,7 @@ void main(void) {
 		if( PCACounter % 20 == 0 ) {
 			//LCD code TODO
 		}
-	}
+	}*/
 }
 
 
@@ -206,7 +209,6 @@ void set_servo_PWM( void ){
 }
 
 //Test conflict !
-
 
 
 
