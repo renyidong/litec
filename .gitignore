@@ -30,3 +30,9 @@
 
 # Debug files
 *.dSYM/
+
+# Silabs IDE debug file
+*.#1
+*.#2
+*.adb
+
