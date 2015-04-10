@@ -123,7 +123,26 @@ void ADC_Init(void){
 	ADC1CF |= 0x01; //Gain 1
 }
 
+void motor_init(void) {
+	PCA0CP2	=62771; 	//1.5ms PW
 
+	while (pca_count<50) {};
+	
+	motor_min = 62034;	//1.9ms PW
+	motor_max = 63508;		//1.1ms PW
+
+	printf("Setting forward speed limit, press d when done.\n\r");
+	printf("press d when done");
+	while (set_motor_speed()!='d') {};
+	motor_min = PCA0CP2;
+
+	PCA0CP2	=62771;			//1.5ms
+	printf("Setting reverse speed limit, press d when done.\n\r");
+	while (set_motor_speed()!='d') {};
+	motor_max = PCA0CP2;
+
+	printf("Setting Finish");
+}
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
