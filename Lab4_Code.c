@@ -19,6 +19,9 @@ unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
 unsigned char lcd_count;
+
+unsigned int PCACounter = 0;
+
 unsigned char r_count;
 unsigned char h_count;
 __sbit __at 0xB7 RUN;
@@ -69,17 +72,22 @@ void main(void) {
 				run_stop = 1;
 			}
 		}
-		if ( new_heading ) {
+		
+		if ( PCACounter % 2 == 0 ) {
 			heading = read_compass();
 			set_servo_PWM();
-			new_heading = 0;
-			h_count = 0;
+			
 		}
-		if (new_range){
-			range = read_ranger() ;
+		
+		if ( PCACounter % 4 == 0 ){
+			range = read_ranger();
 			set_range_adj();
 			new_range = 0;
 			r_count = 0;
+		}
+		
+		if( PCACounter % 20 == 0 ) {
+			//LCD code TODO
 		}
 	}
 }
@@ -147,24 +155,9 @@ void motor_init(void) {
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
 		CF = 0;
-		h_count++;
-		if ( h_count >= 2 ) {
-			new_heading = 1;
-			h_count = 0;
-		}
-		r_count++;
-		if ( r_count >= 4 ){
-			new_range = 1;
-			r_count = 0;
-		}
-		lcd_count++;
-		if ( lcd_count >= 20 ){
-			new_lcd = 1;
-			lcd_count = 0;
-		}
+		PCACounter++;
 		PCA0 = PCA_start;
 	}
-	PCA0CN &= 0xC0;
 }
 
 int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
