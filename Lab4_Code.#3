@@ -3,24 +3,16 @@
 #include <stdlib.h>
 #include <i2c.h>
 
-/* 
-unsigned int PW_CENTER = 
-unsigned int PW_RIGHT = 
-unsigned int PW_LEFT = 
-*/
 unsigned int SERVO_PW = 2735;
 unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
-unsigned char new_heading = 0;
-unsigned char new_range = 0;
-unsigned char new_lcd = 0;
 unsigned int heading;
 unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
-unsigned char lcd_count;
 
 unsigned int PCACounter = 0;
+unsigned int motor_min,motor_max;
 
 __sbit __at 0xB7 RUN;
 	
@@ -31,7 +23,6 @@ void SMBus_Init(void);
 void ADC_Init(void);
 void Interrupt_Init(void);
 void PCA_Init(void);
-void Output_Init(void);
 	
 void PCA_ISR( void ) __interrupt 9;
 	
@@ -47,7 +38,7 @@ int pick_range(void);
 	
 void main(void) {
 	//Local Variables
-	unsigned char run_stop
+	unsigned char run_stop;
 	//Initialization Functions
 	Sys_Init();
 	putchar(' ');
@@ -57,10 +48,11 @@ void main(void) {
 	ADC_Init();
 	Interrupt_Init();
 	PCA_Init();
-	Output_Init();
 	
 	lcd_clear();
     lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
+	lcd_print("test");
+	printf("Finished printing to lcd \r\n");
 	/*
 	while ( 1 ) {
 		run_stop = 0;
@@ -88,6 +80,7 @@ void main(void) {
 			//LCD code TODO
 		}
 	}*/
+	while(1);
 }
 
 
@@ -132,29 +125,31 @@ void ADC_Init(void){
 void motor_init(void) {
 	PCA0CP2	=62771; 	//1.5ms PW
 
-	while (pca_count<50) {};
+	PCACounter = 0;
+	while (PCACounter<50) {};
 	
 	motor_min = 62034;	//1.9ms PW
-	motor_max = 63508;		//1.1ms PW
+	motor_max = 63508;	//1.1ms PW
 
 	printf("Setting forward speed limit, press d when done.\n\r");
-	printf("press d when done");
+	printf("press d when done\n\r");
 	while (set_motor_speed()!='d') {};
 	motor_min = PCA0CP2;
 
-	PCA0CP2	=62771;			//1.5ms
+	PCA0CP2	=62771;		//1.5ms
 	printf("Setting reverse speed limit, press d when done.\n\r");
+	printf("press d when done\n\r");
 	while (set_motor_speed()!='d') {};
 	motor_max = PCA0CP2;
 
-	printf("Setting Finish");
+	printf("Setting Finish\n\r");
 }
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
+		PCA0 = 28672;
 		CF = 0;
 		PCACounter++;
-		PCA0 = PCA_start;
 	}
 }
 
@@ -200,19 +195,28 @@ int read_compass( void ){
 	unsigned int heading;
 	i2c_read_data(addr, 2, Data, 2);
 	heading =(((unsigned int)Data[0] << 8) | Data[1]);
-	return heading
+	return heading;
 }
 
 void set_servo_PWM( void ){
-	set PCACP0 to the correct pulsewidth
-	PCACP0 = 0xFFFF - PW
+	//set PCACP0 to the correct pulsewidth
+	//PCACP0 = 0xFFFF - PW
 }
 
-//Test conflict !
-
-
-
-
-
-
+unsigned char set_motor_speed(void) {
+	//motor_min and motor_max must be initialized before calling
+	// return user inputed char
+	unsigned char user_input;
+	printf("press f for forward, s for reverse(slower)\n\r");
+	user_input = getchar();
+	switch(user_input) {
+		case 'f':
+			if (PCA0CP2 > motor_min) PCA0CP2-=10; 
+			break;
+		case 's':
+			if (PCA0CP2 < motor_max) PCA0CP2+=10;
+			break;
+	}
+	return user_input;
+}
 
