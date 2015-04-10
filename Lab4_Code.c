@@ -3,27 +3,16 @@
 #include <stdlib.h>
 #include <i2c.h>
 
-/* 
-unsigned int PW_CENTER = 
-unsigned int PW_RIGHT = 
-unsigned int PW_LEFT = 
-*/
 unsigned int SERVO_PW = 2735;
 unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
-unsigned char new_heading = 0;
-unsigned char new_range = 0;
-unsigned char new_lcd = 0;
 unsigned int heading;
 unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
-unsigned char lcd_count;
 
 unsigned int PCACounter = 0;
 
-unsigned char r_count;
-unsigned char h_count;
 __sbit __at 0xB7 RUN;
 	
 
@@ -61,8 +50,6 @@ void main(void) {
 	PCA_Init();
 	Output_Init();
 	
-	r_count = 0;
-	h_count = 0;
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -134,22 +121,24 @@ void ADC_Init(void){
 void motor_init(void) {
 	PCA0CP2	=62771; 	//1.5ms PW
 
-	while (pca_count<50) {};
+	PCACounter = 0;
+	while (PCACounter<50) {};
 	
 	motor_min = 62034;	//1.9ms PW
-	motor_max = 63508;		//1.1ms PW
+	motor_max = 63508;	//1.1ms PW
 
 	printf("Setting forward speed limit, press d when done.\n\r");
-	printf("press d when done");
+	printf("press d when done\n\r");
 	while (set_motor_speed()!='d') {};
 	motor_min = PCA0CP2;
 
-	PCA0CP2	=62771;			//1.5ms
+	PCA0CP2	=62771;		//1.5ms
 	printf("Setting reverse speed limit, press d when done.\n\r");
+	printf("press d when done\n\r");
 	while (set_motor_speed()!='d') {};
 	motor_max = PCA0CP2;
 
-	printf("Setting Finish");
+	printf("Setting Finish\n\r");
 }
 
 void PCA_ISR(void) __interrupt 9 {
