@@ -12,6 +12,7 @@ int compass_adj = 0;
 int range_adj = 0;
 
 unsigned int PCACounter = 0;
+unsigned int motor_min,motor_max;
 
 __sbit __at 0xB7 RUN;
 	
@@ -142,9 +143,9 @@ void motor_init(void) {
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
+		PCA0 = 28672;
 		CF = 0;
 		PCACounter++;
-		PCA0 = PCA_start;
 	}
 }
 
@@ -190,7 +191,7 @@ int read_compass( void ){
 	unsigned int heading;
 	i2c_read_data(addr, 2, Data, 2);
 	heading =(((unsigned int)Data[0] << 8) | Data[1]);
-	return heading
+	return heading;
 }
 
 void set_servo_PWM( void ){
@@ -198,12 +199,20 @@ void set_servo_PWM( void ){
 	PCACP0 = 0xFFFF - PW
 }
 
-//Test conflict !
-
-
-
-
-
-
-
+unsigned char set_motor_speed(void) {
+	//motor_min and motor_max must be initialized before calling
+	// return user inputed char
+	unsigned char user_input;
+	printf("press f for forward, s for reverse(slower)\n\r");
+	user_input = getchar();
+	switch(user_input) {
+		case 'f':
+			if (PCA0CP2 > motor_min) PCA0CP2-=10; 
+			break;
+		case 's':
+			if (PCA0CP2 < motor_max) PCA0CP2+=10;
+			break;
+	}
+	return user_input;
+}
 
