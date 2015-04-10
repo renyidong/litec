@@ -34,5 +34,18 @@
 # Silabs IDE debug file
 *.#1
 *.#2
+*.#3
 *.adb
+*.asm
+*.lst
+*.rel
+*.rst
+*.sym
+*.cdb
+*.lk
+*.map
+*.mem
+*.omf
+
+
 
