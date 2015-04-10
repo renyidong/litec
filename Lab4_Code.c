@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <i2c.h>
 
+#define PW1MS1		63508
+#define PW1MS5		62771
+#define PW1MS9		62034
+
 unsigned int SERVO_PW = 2735;
 unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
@@ -24,6 +28,7 @@ void ADC_Init(void);
 void Interrupt_Init(void);
 void PCA_Init(void);
 void Output_Init(void);
+void motor_init(void);
 	
 void PCA_ISR( void ) __interrupt 9;
 	
@@ -35,6 +40,7 @@ int read_ranger( void );
 void set_drive_PWM( void );
 int pick_heading(void);
 int pick_range(void);
+void set_motor_speed(signed char speed);
 	
 	
 void main(void) {
@@ -122,26 +128,49 @@ void ADC_Init(void){
 }
 
 void motor_init(void) {
-	PCA0CP2	=62771; 	//1.5ms PW
+	char user_input=0;
+	PCA0CP2	=PW1MS5;
 
 	PCACounter = 0;
 	while (PCACounter<50) {};
 	
-	motor_min = 62034;	//1.9ms PW
-	motor_max = 63508;	//1.1ms PW
+	motor_min = PW1MS9;
+	motor_max = PW1MS1;
 
 	printf("Setting forward speed limit, press d when done.\n\r");
-	printf("press d when done\n\r");
-	while (set_motor_speed()!='d') {};
+	printf("press f for forward, s for reverse(slower)\n\r");
+	while (user_input!='d') {
+		user_input = getchar();
+		switch(user_input) {
+			case 'f':
+				if (PCA0CP2 > motor_min) PCA0CP2-=10;
+				break;
+			case 's':
+				if (PCA0CP2 < motor_max) PCA0CP2+=10;
+				break;
+		}
+	}
 	motor_min = PCA0CP2;
 
-	PCA0CP2	=62771;		//1.5ms
+	PCA0CP2	=PW1MS5;		//1.5ms
+	user_input = 0;
 	printf("Setting reverse speed limit, press d when done.\n\r");
-	printf("press d when done\n\r");
-	while (set_motor_speed()!='d') {};
+	printf("press f for forward, s for reverse(slower)\n\r");
+	while (user_input!='d') {
+		user_input = getchar();
+		switch(user_input) {
+			case 'f':
+				if (PCA0CP2 > motor_min) PCA0CP2-=10;
+				break;
+			case 's':
+				if (PCA0CP2 < motor_max) PCA0CP2+=10;
+				break;
+		}
+	}
 	motor_max = PCA0CP2;
 
-	printf("Setting Finish\n\r");
+	PCA0CP2	=PW1MS5;
+	printf("Speed Setting Finish\n\r");
 }
 
 void PCA_ISR(void) __interrupt 9 {
@@ -202,20 +231,14 @@ void set_servo_PWM( void ){
 	PCACP0 = 0xFFFF - PW
 }
 
-unsigned char set_motor_speed(void) {
-	//motor_min and motor_max must be initialized before calling
-	// return user inputed char
-	unsigned char user_input;
-	printf("press f for forward, s for reverse(slower)\n\r");
-	user_input = getchar();
-	switch(user_input) {
-		case 'f':
-			if (PCA0CP2 > motor_min) PCA0CP2-=10; 
-			break;
-		case 's':
-			if (PCA0CP2 < motor_max) PCA0CP2+=10;
-			break;
+void set_motor_speed(signed char speed) {
+	unsigned short pcacp;
+	if (speed>=0) {
+		pcacp = PW1MS5 - (speed * (PW1MS5-motor_min)/SCHAR_MAX);
 	}
-	return user_input;
+	else {
+		pcacp = PW1MS5 + (speed * (motor_max-PW1MS5)/SCHAR_MIN);
+	}
+	printf("pulsewidth %u/10 ms\n\r", (USHRT_MAX-pcacp)/184 +1 );
+	PCA0CP2 = pcacp;
 }
-
