@@ -70,7 +70,6 @@ void main(void) {
 			range = read_ranger();
 			set_range_adj();
 			new_range = 0;
-			r_count = 0;
 		}
 		
 		if( PCACounter % 20 == 0 ) {
