@@ -23,7 +23,6 @@ void SMBus_Init(void);
 void ADC_Init(void);
 void Interrupt_Init(void);
 void PCA_Init(void);
-void Output_Init(void);
 	
 void PCA_ISR( void ) __interrupt 9;
 	
@@ -49,10 +48,9 @@ void main(void) {
 	ADC_Init();
 	Interrupt_Init();
 	PCA_Init();
-	Output_Init();
 	
 	lcd_clear();
-    lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
+	printf("Finished printing to lcd \r\n");
 	/*
 	while ( 1 ) {
 		run_stop = 0;
@@ -80,6 +78,7 @@ void main(void) {
 			//LCD code TODO
 		}
 	}*/
+	while(1);
 }
 
 
@@ -198,8 +197,8 @@ int read_compass( void ){
 }
 
 void set_servo_PWM( void ){
-	set PCACP0 to the correct pulsewidth
-	PCACP0 = 0xFFFF - PW
+	//set PCACP0 to the correct pulsewidth
+	//PCACP0 = 0xFFFF - PW
 }
 
 unsigned char set_motor_speed(void) {
@@ -219,3 +218,9 @@ unsigned char set_motor_speed(void) {
 	return user_input;
 }
 
+/*
+int pick_heading(void) {
+	
+	return 
+}
+*/
