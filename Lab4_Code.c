@@ -22,8 +22,6 @@ unsigned char lcd_count;
 
 unsigned int PCACounter = 0;
 
-unsigned char r_count;
-unsigned char h_count;
 __sbit __at 0xB7 RUN;
 	
 
@@ -61,8 +59,6 @@ void main(void) {
 	PCA_Init();
 	Output_Init();
 	
-	r_count = 0;
-	h_count = 0;
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -83,7 +79,6 @@ void main(void) {
 			range = read_ranger();
 			set_range_adj();
 			new_range = 0;
-			r_count = 0;
 		}
 		
 		if( PCACounter % 20 == 0 ) {
