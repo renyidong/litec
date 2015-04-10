@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <i2c.h>
+#include <limits.h>
 
 #define PW1MS1		63508
 #define PW1MS5		62771
@@ -57,6 +58,7 @@ void main(void) {
 	Interrupt_Init();
 	PCA_Init();
 	
+	while(PCACounter < 5 );
 	lcd_clear();
 	printf("Finished printing to lcd \r\n");
 	/*
@@ -94,6 +96,7 @@ void main(void) {
 
 void Port_Init(void) {
 	P1MDOUT = 0x05; //set output pin for CEX0 in push-pull mode
+					//Open pin 0 and 2
 	P3MDOUT &= ~0x80; //set P3.7 to open drain (input)
 	P3 |= 0x80; //Set P3.7 to high impedance
 }
