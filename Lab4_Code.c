@@ -17,8 +17,11 @@ int compass_adj = 0;
 int range_adj = 0;
 __bit updatePCA = 0;
 
+unsigned int desired_heading;
+unsigned int desired_gain;
 unsigned int PCACounter = 0;
 unsigned int motor_min,motor_max;
+char keypad;
 
 __sbit __at 0xB7 RUN;
 	
@@ -41,14 +44,16 @@ int read_compass( void );
 void set_servo_PWM( void );
 int read_ranger( void );
 void set_drive_PWM( void );
-int pick_heading(void);
-int pick_range(void);
+unsigned int pick_heading(void);
+int pick_gain(void);
 void set_motor_speed(signed char speed);
+void pause(void);
 	
 	
 void main(void) {
 	//Local Variables
 	unsigned char run_stop;
+	
 	//Initialization Functions
 	Sys_Init();
 	putchar(' ');
@@ -61,13 +66,15 @@ void main(void) {
 	
 	while(PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
-	
+	desired_heading = pick_heading();
+	while(1);
+	/*
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
 			if (run_stop == 0) {
-				desired_heading = pick_heading();
-				desired_range = pick_range();
+				desired_heading = pick_heading() * 10;
+				desired_gain = pick_gain();
 				run_stop = 1;
 			}
 		}
@@ -88,6 +95,7 @@ void main(void) {
 			//LCD code TODO
 		}
 	}
+	*/
 }
 
 
@@ -247,4 +255,72 @@ void set_motor_speed(signed char speed) {
 	PCA0CP2 = pcacp;
 }
 
+unsigned int pick_heading(void) {
+	unsigned int chosenHeading = 0;
+	char counter = 0;
+	
+	while(1){
+		lcd_clear();
+		lcd_print("Input Desired Heading (Under 360)");
+		while( counter < 3 ){
+			while( read_keypad() == -1){ pause(); }
+			keypad = read_keypad();
+			lcd_clear();
+			pause();
+			chosenHeading *= 10;
+			chosenHeading += ( keypad - '0');
+			++counter;
+			lcd_print("Heading: %d", chosenHeading);
+			while(read_keypad() != -1){ pause();}
+			
+		}		
+		lcd_clear();	
+		if( chosenHeading < 360 ) {
+			break;
+		}
+	}	
+	
+	lcd_print("Heading Input Complete");
+	return chosenHeading;
+}
 
+void pause(void) {
+	unsigned int waitCounter;
+	if( PCACounter < 65533 ){
+		waitCounter = PCACounter;
+	}
+	else {
+		waitCounter = 0;
+	}
+	while(PCACounter > 65533);
+	while( PCACounter - waitCounter != 2 );
+}
+
+unsigned int pick_gain(void) {
+	unsigned int chosenGain = 0;
+	char counter = 0;
+	
+	while(1){
+		lcd_clear();
+		lcd_print("Input Desired Gain (Under 999)");
+		while( counter < 3 ){
+			while( read_keypad() == -1){ pause(); }
+			keypad = read_keypad();
+			lcd_clear();
+			pause();
+			chosenGain *= 10;
+			chosenGain += ( keypad - '0');
+			++counter;
+			lcd_print("Gain: %d", chosenGain);
+			while(read_keypad() != -1){ pause();}
+			
+		}		
+		lcd_clear();	
+		if( chosenGain <= 999 ) {
+			break;
+		}
+	}	
+	
+	lcd_print("Gain Input Complete");
+	return chosenGain;
+}
