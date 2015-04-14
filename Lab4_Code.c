@@ -59,7 +59,7 @@ void main(void) {
 	Interrupt_Init();
 	PCA_Init();
 	
-	while(PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
+	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
 	
 	while ( 1 ) {
@@ -81,7 +81,6 @@ void main(void) {
 		if ( PCACounter % 4 == 0 ){
 			range = read_ranger();
 			set_range_adj();
-			new_range = 0;
 		}
 		
 		if( PCACounter % 20 == 0 ) {
@@ -246,6 +245,12 @@ unsigned short read_ranger (void) {
 	}
 	i2c_write_data(0xE0,0,&command,1);
 	return distance;
+}
+
+void set_range_adj(void) {
+	const unsigned short MAX_RANGE=50;
+	if (range > MAX_RANGE ) range_adj = 0;
+	else range_adj = (int)( range_gain * (MAX_RANGE - range) );
 }
 
 // ----------------------motor--------------------
