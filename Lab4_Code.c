@@ -58,7 +58,7 @@ void main(void) {
 	Interrupt_Init();
 	PCA_Init();
 	
-	while(PCACounter < 5 );
+	while(PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
 	printf("Finished printing to lcd \r\n");
 	/*
