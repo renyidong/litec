@@ -15,6 +15,7 @@ unsigned int heading;
 unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
+__bit updatePCA = 0;
 
 unsigned int PCACounter = 0;
 unsigned int motor_min,motor_max;
@@ -60,8 +61,7 @@ void main(void) {
 	
 	while(PCACounter < 5 );
 	lcd_clear();
-	printf("Finished printing to lcd \r\n");
-	/*
+	
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -71,11 +71,11 @@ void main(void) {
 				run_stop = 1;
 			}
 		}
-		
+		while(!updatePCA);
+		updatePCA = 0;
 		if ( PCACounter % 2 == 0 ) {
 			heading = read_compass();
 			set_servo_PWM();
-			
 		}
 		
 		if ( PCACounter % 4 == 0 ){
@@ -87,8 +87,7 @@ void main(void) {
 		if( PCACounter % 20 == 0 ) {
 			//LCD code TODO
 		}
-	}*/
-	while(1);
+	}
 }
 
 
@@ -179,6 +178,7 @@ void motor_init(void) {
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
+		updatePCA = 1;
 		PCA0 = 28672;
 		CF = 0;
 		PCACounter++;
