@@ -215,9 +215,8 @@ int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
 
 unsigned char read_AD_input( unsigned char n ) {
 	AMX1SL = n;
-	ADC1CN = ADC1CN & ~0x20;
-	ADC1CN = ADC1CN | 0x10;
-	while ((ADC1CN & 0x20) == 0x00);
+	ADC1CN = (ADC1CN & ~0x20) | 0x10;
+	while (!(ADC1CN & 0x20));
 	return ADC1;
 }
 
@@ -243,7 +242,6 @@ void set_motor_speed(signed char speed) {
 	else {
 		pcacp = PW1MS5 + (speed * (motor_max-PW1MS5)/SCHAR_MIN);
 	}
-	printf("pulsewidth %u/10 ms\n\r", (USHRT_MAX-pcacp)/184 +1 );
 	PCA0CP2 = pcacp;
 }
 
