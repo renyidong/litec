@@ -51,7 +51,7 @@ void main(void) {
     lcd_clear();
     lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");      
 	printf("Completed \r\n");
-	/*
+
     while (1) {
         
         userInput = 0;
@@ -82,7 +82,6 @@ void main(void) {
 			printf("Your input was:\n %d\n", userInput);
 		}
 	} 
-	*/
     while(1);
 }
 //*****************************************************************************
@@ -141,3 +140,36 @@ void wait(void)
     nCounts = 0;
     while (nCounts < 50);    // 50 counts -> 50 x 20ms = 1000ms
 }
+
+/*
+	
+unsigned int pick_gain(void) {
+	unsigned int chosenGain = 0;
+	char counter = 0;
+	
+	while(1){
+		lcd_clear();
+		lcd_print("Input Desired Gain (Under 999)");
+		while( counter < 3 ){
+			while( read_keypad() == -1){ pause(); }
+			keypad = read_keypad();
+			lcd_clear();
+			pause();
+			chosenGain *= 10;
+			chosenGain += ( keypad - '0');
+			++counter;
+			lcd_print("Gain: %d", chosenGain);
+			while(read_keypad() != -1){ pause();}
+			
+		}		
+		lcd_clear();	
+		if( chosenGain <= 999 ) {
+			break;
+		}
+	}	
+	
+	lcd_print("Gain Input Complete");
+	return chosenGain;
+}
+	
+	*/

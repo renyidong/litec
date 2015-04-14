@@ -18,9 +18,9 @@ int range_adj = 0;
 __bit updatePCA = 0;
 
 unsigned int desired_heading;
-unsigned int desired_gain;
 unsigned int PCACounter = 0;
 unsigned int motor_min,motor_max;
+int range_gain;
 char keypad;
 
 __sbit __at 0xB7 RUN;
@@ -67,7 +67,11 @@ void main(void) {
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
 	desired_heading = pick_heading();
-	while(1);
+	while(read_keypad() == -1);
+	while(read_keypad() != -1);
+	lcd_clear();
+	range_gain = pick_gain();
+
 	/*
 	while ( 1 ) {
 		run_stop = 0;
@@ -242,7 +246,7 @@ void set_servo_PWM( void ){
 }
 
 // ----------------------ranger-------------------
-unsigned short read_ranger (void) {
+int read_ranger (void) {
 	unsigned const char command=0x51;
 	static unsigned short distance;
 	unsigned char raw_data[2];
@@ -279,18 +283,27 @@ unsigned int pick_heading(void) {
 	
 	while(1){
 		lcd_clear();
-		lcd_print("Input Desired Heading (Under 360)");
+		lcd_print("Input Desired \nHeading (Under 360)");
 		while( counter < 3 ){
 			while( read_keypad() == -1){ pause(); }
 			keypad = read_keypad();
 			lcd_clear();
 			pause();
-			chosenHeading *= 10;
-			chosenHeading += ( keypad - '0');
-			++counter;
-			lcd_print("Heading: %d", chosenHeading);
+			if( keypad == '#' ){
+				break;
+			}
+			else if( keypad == '*' ){
+				counter = 0;
+				chosenHeading = 0;
+				lcd_print("Heading: %d", chosenHeading);				
+			}
+			else {
+				chosenHeading *= 10;
+				chosenHeading += ( keypad - '0');
+				++counter;
+				lcd_print("Heading: %d", chosenHeading);
+			}
 			while(read_keypad() != -1){ pause();}
-			
 		}		
 		lcd_clear();	
 		if( chosenHeading < 360 ) {
@@ -314,24 +327,33 @@ void pause(void) {
 	while( PCACounter - waitCounter != 2 );
 }
 
-unsigned int pick_gain(void) {
+int pick_gain(void) {
 	unsigned int chosenGain = 0;
 	char counter = 0;
 	
 	while(1){
 		lcd_clear();
-		lcd_print("Input Desired Gain (Under 999)");
+		lcd_print("Input Desired\nGain (Under 999)");
 		while( counter < 3 ){
 			while( read_keypad() == -1){ pause(); }
 			keypad = read_keypad();
 			lcd_clear();
 			pause();
-			chosenGain *= 10;
-			chosenGain += ( keypad - '0');
-			++counter;
-			lcd_print("Gain: %d", chosenGain);
+			if( keypad == '#' ){
+				break;
+			}
+			else if( keypad == '*' ){
+				counter = 0;
+				chosenGain = 0;
+				lcd_print("Gain: %d", chosenGain);				
+			}
+			else {
+				chosenGain *= 10;
+				chosenGain += ( keypad - '0');
+				++counter;
+				lcd_print("Gain: %d", chosenGain);
+			}
 			while(read_keypad() != -1){ pause();}
-			
 		}		
 		lcd_clear();	
 		if( chosenGain <= 999 ) {
