@@ -11,11 +11,17 @@
 unsigned int SERVO_PW = 2735;
 unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
+unsigned int PW_CENTER = 2735;
+
+unsigned int desired_gain = 0;
+
 unsigned int heading;
 unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
-__bit updatePCA = 0;
+__bit modBy2 = 0;
+__bit modBy4 = 0;
+__bit modBy20 = 0;
 
 unsigned int desired_heading;
 unsigned int PCACounter = 0;
@@ -48,6 +54,8 @@ unsigned int pick_heading(void);
 int pick_gain(void);
 void set_motor_speed(signed char speed);
 void pause(void);
+
+int compassADJ( void );
 	
 	
 void main(void) {
@@ -66,13 +74,8 @@ void main(void) {
 	
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
-	desired_heading = pick_heading();
-	while(read_keypad() == -1);
-	while(read_keypad() != -1);
-	lcd_clear();
-	range_gain = pick_gain();
 
-	/*
+	
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -82,23 +85,26 @@ void main(void) {
 				run_stop = 1;
 			}
 		}
-		while(!updatePCA);
-		updatePCA = 0;
-		if ( PCACounter % 2 == 0 ) {
+		if ( modBy2 ) {
 			heading = read_compass();
 			set_servo_PWM();
+			modBy2 = 0;
 		}
 		
-		if ( PCACounter % 4 == 0 ){
+		if ( modBy4 ){
 			range = read_ranger();
 			set_range_adj();
+			modBy4 = 0;
+			printf("Compass: %d\tRanger:%d\r\n",heading,range);
 		}
-		
-		if( PCACounter % 20 == 0 ) {
+	
+	//	if( modBy20 ) {
 			//LCD code TODO
-		}
+		//	modBy20 = 0;
+	//	}
+	
 	}
-	*/
+	
 }
 
 
@@ -189,7 +195,15 @@ void motor_init(void) {
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
-		updatePCA = 1;
+		if ( PCACounter % 2 == 0 ) {
+			modBy2 = 1;
+		}
+		if ( PCACounter % 4 == 0 ) {
+			modBy4 = 1;
+		}
+		if ( PCACounter % 20 == 0 ) {
+			modBy20 = 1;
+		}
 		PCA0 = 28672;
 		CF = 0;
 		PCACounter++;
@@ -241,6 +255,11 @@ int read_compass( void ){
 }
 
 void set_servo_PWM( void ){
+	range_adj = compass_adj * (60/ranger_value);//TODO random thing just to get working rn
+	SERVO_PW = PW_CENTER + compass_adj + range_adj;
+	if(temp_servo_pw < PW_MIN){temp_servo_pw = PW_MIN;}
+	else if(temp_servo_pw > PW_MAX){temp_servo_pw = PW_MAX;}
+	PCA0CP0 = 0xFFFF - SERVO_PW;
 	//set PCACP0 to the correct pulsewidth
 	//PCACP0 = 0xFFFF - PW
 }
@@ -363,4 +382,16 @@ int pick_gain(void) {
 	
 	lcd_print("Gain Input Complete");
 	return chosenGain;
+}
+
+int compassADJ( void ){
+	int error = heading - desired_heading;		//Calculates the error with the values 
+													//shifted towards 0 till desired_heading = 0
+		float k = (float)550/(float)1800; //TODO 550 or 600					
+	if( error > 1800 ) {
+		error = (-1) * ( 3600 - error );			//Calculates the error if actual_heading is between 1800 and 3599
+	}
+	error *= -1;		//Sets the error into the correct sign
+	
+	return k * error;
 }

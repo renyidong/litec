@@ -141,8 +141,8 @@ void wait(void)
     while (nCounts < 50);    // 50 counts -> 50 x 20ms = 1000ms
 }
 
-/*
-	
+
+	/*
 unsigned int pick_gain(void) {
 	unsigned int chosenGain = 0;
 	char counter = 0;
@@ -171,5 +171,4 @@ unsigned int pick_gain(void) {
 	lcd_print("Gain Input Complete");
 	return chosenGain;
 }
-	
 	*/
