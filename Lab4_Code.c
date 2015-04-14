@@ -234,6 +234,21 @@ void set_servo_PWM( void ){
 	//PCACP0 = 0xFFFF - PW
 }
 
+// ----------------------ranger-------------------
+unsigned short read_ranger (void) {
+	unsigned const char command=0x51;
+	static unsigned short distance;
+	unsigned char raw_data[2];
+	i2c_read_data(0xE0,2,raw_data,2);
+	if (raw_data[0]!=0xFF&&raw_data[1]!=0xFF){
+		distance  += (unsigned short)raw_data[0]<<8 | raw_data[1];
+		distance >>= 1;		// use average of old and new to stablize
+	}
+	i2c_write_data(0xE0,0,&command,1);
+	return distance;
+}
+
+// ----------------------motor--------------------
 void set_motor_speed(signed char speed) {
 	unsigned short pcacp;
 	if (speed>=0) {
@@ -244,5 +259,4 @@ void set_motor_speed(signed char speed) {
 	}
 	PCA0CP2 = pcacp;
 }
-
 
