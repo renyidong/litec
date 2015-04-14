@@ -64,7 +64,7 @@ void main(void) {
 	Interrupt_Init();
 	PCA_Init();
 	
-	while(PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
+	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
 	desired_heading = pick_heading();
 	while(1);
@@ -88,7 +88,6 @@ void main(void) {
 		if ( PCACounter % 4 == 0 ){
 			range = read_ranger();
 			set_range_adj();
-			new_range = 0;
 		}
 		
 		if( PCACounter % 20 == 0 ) {
@@ -223,9 +222,8 @@ int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
 
 unsigned char read_AD_input( unsigned char n ) {
 	AMX1SL = n;
-	ADC1CN = ADC1CN & ~0x20;
-	ADC1CN = ADC1CN | 0x10;
-	while ((ADC1CN & 0x20) == 0x00);
+	ADC1CN = (ADC1CN & ~0x20) | 0x10;
+	while (!(ADC1CN & 0x20));
 	return ADC1;
 }
 
@@ -243,6 +241,27 @@ void set_servo_PWM( void ){
 	//PCACP0 = 0xFFFF - PW
 }
 
+// ----------------------ranger-------------------
+unsigned short read_ranger (void) {
+	unsigned const char command=0x51;
+	static unsigned short distance;
+	unsigned char raw_data[2];
+	i2c_read_data(0xE0,2,raw_data,2);
+	if (raw_data[0]!=0xFF&&raw_data[1]!=0xFF){
+		distance  += (unsigned short)raw_data[0]<<8 | raw_data[1];
+		distance >>= 1;		// use average of old and new to stablize
+	}
+	i2c_write_data(0xE0,0,&command,1);
+	return distance;
+}
+
+void set_range_adj(void) {
+	const unsigned short MAX_RANGE=50;
+	if (range > MAX_RANGE ) range_adj = 0;
+	else range_adj = (int)( range_gain * (MAX_RANGE - range) );
+}
+
+// ----------------------motor--------------------
 void set_motor_speed(signed char speed) {
 	unsigned short pcacp;
 	if (speed>=0) {
@@ -251,7 +270,6 @@ void set_motor_speed(signed char speed) {
 	else {
 		pcacp = PW1MS5 + (speed * (motor_max-PW1MS5)/SCHAR_MIN);
 	}
-	printf("pulsewidth %u/10 ms\n\r", (USHRT_MAX-pcacp)/184 +1 );
 	PCA0CP2 = pcacp;
 }
 
