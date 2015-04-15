@@ -14,7 +14,6 @@ unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
 unsigned int PW_CENTER = 2735;
 
-unsigned int desired_gain = 0;
 
 unsigned int heading;
 unsigned int range;
@@ -83,7 +82,7 @@ void main(void) {
 		while ( !RUN ) {
 			if (run_stop == 0) {
 				desired_heading = pick_heading() * 10;
-				desired_gain = pick_gain();
+				range_gain = pick_gain();
 				run_stop = 1;
 			}
 		}
@@ -261,7 +260,7 @@ int read_compass( void ){
 
 void set_servo_PWM( void ){
 	compass_adj = compassADJ();
-	range_adj = compass_adj * (60/range);//TODO random thing just to get working rn
+	range_adj = set_range_adj();
 	SERVO_PW = PW_CENTER + compass_adj + range_adj;
 	if(SERVO_PW < SERVO_MIN){SERVO_PW = SERVO_MIN;}
 	else if(SERVO_PW > SERVO_MAX){SERVO_PW = SERVO_MAX;}
@@ -286,7 +285,7 @@ int read_ranger (void) {
 }
 
 void set_range_adj(void) {
-	const unsigned short MAX_RANGE=50;
+	const unsigned int MAX_RANGE=50;
 	if (range > MAX_RANGE ) range_adj = 0;
 	else range_adj = (int)( range_gain * (MAX_RANGE - range) );
 }
@@ -315,7 +314,9 @@ unsigned int pick_heading(void) {
 			keypad = read_keypad();
 			lcd_clear();
 			pause();
+			while(read_keypad() != -1){ pause();}
 			if( keypad == '#' ){
+
 				break;
 			}
 			else if( keypad == '*' ){
@@ -329,7 +330,6 @@ unsigned int pick_heading(void) {
 				++counter;
 				lcd_print("Heading: %d", chosenHeading);
 			}
-			while(read_keypad() != -1){ pause();}
 		}		
 		lcd_clear();	
 		if( chosenHeading < 360 ) {
