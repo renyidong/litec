@@ -30,6 +30,7 @@ int range_gain;
 char keypad;
 
 __sbit __at 0xB7 RUN;
+#define BATT_ADC_PIN 4
 	
 
 void Port_Init(void);
@@ -90,9 +91,14 @@ void main(void) {
 		set_motor_speed( 120 );
 		
 		if ( modBy2 ) {
-			heading = read_compass();
-			set_servo_PWM();
-			modBy2 = 0;
+			if (range > 12) {
+				heading = read_compass();
+				set_servo_PWM();
+				modBy2 = 0;
+			}
+			else {
+				set_motor_speed(0);
+			}
 		}
 		
 		if ( modBy4 ){
@@ -262,8 +268,14 @@ void set_servo_PWM( void ){
 	compass_adj = compassADJ();
 	range_adj = set_range_adj();
 	SERVO_PW = PW_CENTER + compass_adj + range_adj;
-	if(SERVO_PW < SERVO_MIN){SERVO_PW = SERVO_MIN;}
-	else if(SERVO_PW > SERVO_MAX){SERVO_PW = SERVO_MAX;}
+	if (SERVO_PW < SERVO_MIN || SERVO_PW > SERVO_MAX ) {
+		if (range < 20 ) {
+			set_motor_speed(0);
+			return;
+		}
+		if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
+		else {SERVO_PW = SERVO_MAX;}
+        }
 	PCA0CP0 = 0xFFFF - SERVO_PW;
 	printf("Compass Adjust: %d\tRanger Adjust:%d\t\r\n",compass_adj,range_adj);
 	//set PCACP0 to the correct pulsewidth
