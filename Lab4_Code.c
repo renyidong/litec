@@ -55,6 +55,7 @@ unsigned int pick_heading(void);
 int pick_gain(void);
 void set_motor_speed(signed char speed);
 void pause(void);
+void get_and_display_status(void);
 
 int compassADJ( void );
 	
@@ -94,22 +95,22 @@ void main(void) {
 			if (range > 12) {
 				heading = read_compass();
 				set_servo_PWM();
-				updateCompass = 0;
 			}
 			else {
 				set_motor_speed(0);
 			}
+			updateCompass = 0;
 		}
 		
 		if ( updateRanger ){
 			range = read_ranger();
 			set_range_adj();
-			updateRanger = 0;
 			printf("Compass: %d\tRanger:%d\tServo_PW: %u\t",heading,range,SERVO_PW);
+			updateRanger = 0;
 		}
 	
 		if( updateLCD ) {
-			//LCD code TODO
+			get_and_display_status();
 			updateLCD = 0;
 		}
 	
@@ -312,6 +313,19 @@ void set_motor_speed(signed char speed) {
 		pcacp = PW1MS5 + (speed * (motor_max-PW1MS5)/SCHAR_MIN);
 	}
 	PCA0CP2 = pcacp;
+}
+
+// --------------------UI-------------------------
+void get_and_display_status (void) {
+	unsigned int batt_volt;
+	static __bit update_batt=0;
+	update_batt = !update_batt;
+	if (update_batt) {
+		batt_volt = ( (unsigned int)read_AD_input(BATT_ADC_PIN) * 150 ) / UCHAR_MAX;	//15.0 V ~ 255
+	}
+	lcd_clear();
+	lcd_print("H:%3udeg R:%3ucm BAT:%2u.%1uV\n",heading,range,batt_volt/10,batt_volt%10);
+	pause();
 }
 
 unsigned int pick_heading(void) {
