@@ -1,3 +1,4 @@
+
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,6 +72,7 @@ void main(void) {
 	ADC_Init();
 	Interrupt_Init();
 	PCA_Init();
+	motor_init();
 	
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
@@ -85,6 +87,9 @@ void main(void) {
 				run_stop = 1;
 			}
 		}
+		
+		set_motor_speed( 120 );
+		
 		if ( modBy2 ) {
 			heading = read_compass();
 			set_servo_PWM();
@@ -95,7 +100,7 @@ void main(void) {
 			range = read_ranger();
 			set_range_adj();
 			modBy4 = 0;
-			printf("Compass: %d\tRanger:%d\r\n",heading,range);
+			printf("Compass: %d\tRanger:%d\tServo_PW: %u\t",heading,range,SERVO_PW);
 		}
 	
 	//	if( modBy20 ) {
@@ -209,7 +214,7 @@ void PCA_ISR(void) __interrupt 9 {
 		PCACounter++;
 	}
 }
-
+/*
 int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
 	//Local Variables
 	int deflt;
@@ -237,7 +242,7 @@ int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
 		}
 	}
 }
-
+*/
 unsigned char read_AD_input( unsigned char n ) {
 	AMX1SL = n;
 	ADC1CN = (ADC1CN & ~0x20) | 0x10;
@@ -255,11 +260,13 @@ int read_compass( void ){
 }
 
 void set_servo_PWM( void ){
-	range_adj = compass_adj * (60/ranger_value);//TODO random thing just to get working rn
+	compass_adj = compassADJ();
+	range_adj = compass_adj * (60/range);//TODO random thing just to get working rn
 	SERVO_PW = PW_CENTER + compass_adj + range_adj;
-	if(temp_servo_pw < PW_MIN){temp_servo_pw = PW_MIN;}
-	else if(temp_servo_pw > PW_MAX){temp_servo_pw = PW_MAX;}
+	if(SERVO_PW < SERVO_MIN){SERVO_PW = SERVO_MIN;}
+	else if(SERVO_PW > SERVO_MAX){SERVO_PW = SERVO_MAX;}
 	PCA0CP0 = 0xFFFF - SERVO_PW;
+	printf("Compass Adjust: %d\tRanger Adjust:%d\t\r\n",compass_adj,range_adj);
 	//set PCACP0 to the correct pulsewidth
 	//PCACP0 = 0xFFFF - PW
 }
