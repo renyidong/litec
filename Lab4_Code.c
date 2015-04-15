@@ -19,9 +19,9 @@ unsigned int heading;
 unsigned int range;
 int compass_adj = 0;
 int range_adj = 0;
-__bit modBy2 = 0;
-__bit modBy4 = 0;
-__bit modBy20 = 0;
+__bit updateCompass = 0;
+__bit updateRanger = 0;
+__bit updateLCD = 0;
 
 unsigned int desired_heading;
 unsigned int PCACounter = 0;
@@ -90,28 +90,28 @@ void main(void) {
 		
 		set_motor_speed( 120 );
 		
-		if ( modBy2 ) {
+		if ( updateCompass ) {
 			if (range > 12) {
 				heading = read_compass();
 				set_servo_PWM();
-				modBy2 = 0;
+				updateCompass = 0;
 			}
 			else {
 				set_motor_speed(0);
 			}
 		}
 		
-		if ( modBy4 ){
+		if ( updateRanger ){
 			range = read_ranger();
 			set_range_adj();
-			modBy4 = 0;
+			updateRanger = 0;
 			printf("Compass: %d\tRanger:%d\tServo_PW: %u\t",heading,range,SERVO_PW);
 		}
 	
-	//	if( modBy20 ) {
+		if( updateLCD ) {
 			//LCD code TODO
-		//	modBy20 = 0;
-	//	}
+			updateLCD = 0;
+		}
 	
 	}
 	
@@ -206,13 +206,13 @@ void motor_init(void) {
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
 		if ( PCACounter % 2 == 0 ) {
-			modBy2 = 1;
+			updateCompass = 1;
 		}
 		if ( PCACounter % 4 == 0 ) {
-			modBy4 = 1;
+			updateRanger = 1;
 		}
 		if ( PCACounter % 20 == 0 ) {
-			modBy20 = 1;
+			updateLCD = 1;
 		}
 		PCA0 = 28672;
 		CF = 0;
@@ -406,7 +406,7 @@ int pick_gain(void) {
 int compassADJ( void ){
 	int error = heading - desired_heading;		//Calculates the error with the values 
 													//shifted towards 0 till desired_heading = 0
-		float k = (float)550/(float)1800; //TODO 550 or 600					
+	float k = (float)550/(float)1800; //TODO 550 or 600					
 	if( error > 1800 ) {
 		error = (-1) * ( 3600 - error );			//Calculates the error if actual_heading is between 1800 and 3599
 	}
