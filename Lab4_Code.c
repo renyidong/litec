@@ -78,7 +78,7 @@ void main(void) {
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();
 
-	
+	set_motor_speed( 120 );
 	while ( 1 ) {
 		run_stop = 0;
 		while ( !RUN ) {
@@ -89,10 +89,10 @@ void main(void) {
 			}
 		}
 		
-		set_motor_speed( 120 );
 		
 		if ( updateCompass ) {
 			if (range > 12) {
+				set_motor_speed( 120 );
 				heading = read_compass();
 				set_servo_PWM();
 			}
