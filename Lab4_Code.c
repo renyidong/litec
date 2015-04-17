@@ -30,7 +30,7 @@ int range_gain;
 char keypad;
 
 __sbit __at 0xB7 RUN;
-#define BATT_ADC_PIN 4
+#define BATT_ADC_PIN 6
 	
 
 void Port_Init(void);
@@ -105,7 +105,7 @@ void main(void) {
 		if ( updateRanger ){
 			range = read_ranger();
 			set_range_adj();
-			printf("Compass: %d\tRanger:%d\tServo_PW: %u\t",heading,range,SERVO_PW);
+			printf("Compass: %d\tRanger:%d\tServo_PW: %u\n\r",heading,range,SERVO_PW);
 			updateRanger = 0;
 		}
 	
@@ -122,6 +122,7 @@ void main(void) {
 //Functions
 
 void Port_Init(void) {
+	P1MDIN  = 0x40;
 	P1MDOUT = 0x05; //set output pin for CEX0 in push-pull mode
 					//Open pin 0 and 2
 	P3MDOUT &= ~0x80; //set P3.7 to open drain (input)
@@ -167,7 +168,7 @@ void motor_init(void) {
 	
 	motor_min = PW1MS9;
 	motor_max = PW1MS1;
-
+/*
 	printf("Setting forward speed limit, press d when done.\n\r");
 	printf("press f for forward, s for reverse(slower)\n\r");
 	while (user_input!='d') {
@@ -201,7 +202,7 @@ void motor_init(void) {
 	motor_max = PCA0CP2;
 
 	PCA0CP2	=PW1MS5;
-	printf("Speed Setting Finish\n\r");
+	printf("Speed Setting Finish\n\r");*/
 }
 
 void PCA_ISR(void) __interrupt 9 {
@@ -274,11 +275,11 @@ void set_servo_PWM( void ){
 			set_motor_speed(0);
 			return;
 		}
-		if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
-		else {SERVO_PW = SERVO_MAX;}
-        }
+    }
+	if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
+	else if (SERVO_PW > SERVO_MAX) {SERVO_PW = SERVO_MAX;}
 	PCA0CP0 = 0xFFFF - SERVO_PW;
-	printf("Compass Adjust: %d\tRanger Adjust:%d\t\r\n",compass_adj,range_adj);
+//	printf("Compass Adjust: %d\tRanger Adjust:%d\t\r\n",compass_adj,range_adj);
 	//set PCACP0 to the correct pulsewidth
 	//PCACP0 = 0xFFFF - PW
 }
@@ -324,7 +325,7 @@ void get_and_display_status (void) {
 		batt_volt = ( (unsigned int)read_AD_input(BATT_ADC_PIN) * 150 ) / UCHAR_MAX;	//15.0 V ~ 255
 	}
 	lcd_clear();
-	lcd_print("H:%3udeg R:%3ucm BAT:%2u.%1uV\n",heading,range,batt_volt/10,batt_volt%10);
+	lcd_print("H:%3udeg R:%3ucm\nBAT:%2u.%1uV\n",heading/10,range,batt_volt/10,batt_volt%10);
 	pause();
 }
 
