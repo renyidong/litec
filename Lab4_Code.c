@@ -318,7 +318,7 @@ void set_motor_speed(signed char speed) {
 
 // --------------------UI-------------------------
 void get_and_display_status (void) {
-	unsigned int batt_volt;
+	static unsigned int batt_volt;
 	static __bit update_batt=0;
 	update_batt = !update_batt;
 	if (update_batt) {
