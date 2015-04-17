@@ -9,7 +9,7 @@
 #define PW1MS5		62771
 #define PW1MS9		62034
 
-unsigned int SERVO_PW = 2735;
+unsigned int SERVO_PW  = 2735;
 unsigned int SERVO_MAX = 3335;
 unsigned int SERVO_MIN = 2185;
 unsigned int PW_CENTER = 2735;
@@ -93,7 +93,7 @@ void main(void) {
 		
 		
 		if ( updateCompass ) {
-			if (range > 12) {
+			if (range > 20) {
 				set_motor_speed( 120 );
 				heading = read_compass();
 				set_servo_PWM();
@@ -106,7 +106,7 @@ void main(void) {
 		
 		if ( updateRanger ){
 			range = read_ranger();
-			set_range_adj();
+			range_adj = set_range_adj();
 			printf("Compass: %d\tRanger:%d\tcompass_adj:%d\trange_adj:%d\tServo_PW: %u\n\r",heading,range,compass_adj,range_adj,SERVO_PW);
 			updateRanger = 0;
 		}
@@ -271,10 +271,9 @@ int read_compass( void ){
 
 void set_servo_PWM( void ){
 	compass_adj = compassADJ();
-	range_adj = set_range_adj();
-	SERVO_PW = PW_CENTER + compass_adj + range_adj;
+	SERVO_PW = (signed long)PW_CENTER + compass_adj + range_adj;
 	if (SERVO_PW < SERVO_MIN || SERVO_PW > SERVO_MAX ) {
-		if (range < 20 ) {
+		if (range < 30 ) {
 			set_motor_speed(0);
 			return;
 		}
@@ -302,9 +301,9 @@ int read_ranger (void) {
 }
 
 int set_range_adj(void) {
-	const unsigned int MAX_RANGE=50;
+	const unsigned int MAX_RANGE=60;
 	if (range > MAX_RANGE ) return 0;
-	else return (int)( range_gain * (MAX_RANGE - range) );
+	else return ( range_gain * (MAX_RANGE - range) );
 }
 
 // ----------------------motor--------------------
@@ -338,7 +337,7 @@ unsigned int pick_heading(void) {
 	
 	while(1){
 		lcd_clear();
-		lcd_print("Input Desired \nHeading (Under 360)");
+		lcd_print("Enter Heading Desired (Under 360)\nCurrent heading:%u",read_compass()/10);
 		while( counter < 3 ){
 			while( read_keypad() == -1){ pause(); }
 			keypad = read_keypad();
