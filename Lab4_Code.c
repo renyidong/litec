@@ -58,6 +58,7 @@ void pause(void);
 void get_and_display_status(void);
 
 int compassADJ( void );
+int set_range_adj(void);
 	
 	
 void main(void) {
@@ -83,6 +84,7 @@ void main(void) {
 		run_stop = 0;
 		while ( !RUN ) {
 			if (run_stop == 0) {
+				set_motor_speed( 0 );
 				desired_heading = pick_heading() * 10;
 				range_gain = pick_gain();
 				run_stop = 1;
@@ -105,7 +107,7 @@ void main(void) {
 		if ( updateRanger ){
 			range = read_ranger();
 			set_range_adj();
-			printf("Compass: %d\tRanger:%d\tServo_PW: %u\n\r",heading,range,SERVO_PW);
+			printf("Compass: %d\tRanger:%d\tcompass_adj:%d\trange_adj:%d\tServo_PW: %u\n\r",heading,range,compass_adj,range_adj,SERVO_PW);
 			updateRanger = 0;
 		}
 	
@@ -122,9 +124,10 @@ void main(void) {
 //Functions
 
 void Port_Init(void) {
-	P1MDIN  = 0x40;
+	P1MDIN  &= ~0x40;
 	P1MDOUT = 0x05; //set output pin for CEX0 in push-pull mode
 					//Open pin 0 and 2
+	P1 		|= 0x40;
 	P3MDOUT &= ~0x80; //set P3.7 to open drain (input)
 	P3 |= 0x80; //Set P3.7 to high impedance
 }
@@ -298,10 +301,10 @@ int read_ranger (void) {
 	return distance;
 }
 
-void set_range_adj(void) {
+int set_range_adj(void) {
 	const unsigned int MAX_RANGE=50;
-	if (range > MAX_RANGE ) range_adj = 0;
-	else range_adj = (int)( range_gain * (MAX_RANGE - range) );
+	if (range > MAX_RANGE ) return 0;
+	else return (int)( range_gain * (MAX_RANGE - range) );
 }
 
 // ----------------------motor--------------------
@@ -325,7 +328,7 @@ void get_and_display_status (void) {
 		batt_volt = ( (unsigned int)read_AD_input(BATT_ADC_PIN) * 150 ) / UCHAR_MAX;	//15.0 V ~ 255
 	}
 	lcd_clear();
-	lcd_print("H:%3udeg R:%3ucm\nBAT:%2u.%1uV\n",heading/10,range,batt_volt/10,batt_volt%10);
+	lcd_print("H:%3udeg R:%3ucm\nBAT:%2u.%1uV",heading/10,range,batt_volt/10,batt_volt%10);
 	pause();
 }
 
@@ -415,7 +418,7 @@ int pick_gain(void) {
 	}	
 	
 	lcd_print("Gain Input Complete");
-	return chosenGain;
+	return -chosenGain;
 }
 
 int compassADJ( void ){
