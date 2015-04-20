@@ -107,12 +107,12 @@ void main(void) {
 		if ( updateRanger ){
 			range = read_ranger();
 			range_adj = set_range_adj();
-			printf("Compass: %d\tRanger:%d\tcompass_adj:%d\trange_adj:%d\tServo_PW: %u\n\r",heading,range,compass_adj,range_adj,SERVO_PW);
 			updateRanger = 0;
 		}
 	
 		if( updateLCD ) {
 			get_and_display_status();
+			printf("Compass:\t%d\tRanger:\t%d\tcompass_adj:\t%d\trange_adj:\t%d\tServo_PW:\t%u\n",heading,range,compass_adj,range_adj,SERVO_PW);
 			updateLCD = 0;
 		}
 	
@@ -362,12 +362,13 @@ unsigned int pick_heading(void) {
 		}		
 		lcd_clear();	
 		if( chosenHeading < 360 ) {
+			chosenHeading+=60;
 			break;
 		}
 	}	
 	
 	lcd_print("Heading Input Complete");
-	return chosenHeading;
+	return (chosenHeading<360)?(chosenHeading):(chosenHeading-360);
 }
 
 void pause(void) {
