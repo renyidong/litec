@@ -9,10 +9,10 @@
 #define PW1MS5		62771
 #define PW1MS9		62034
 
-unsigned int SERVO_PW  = 2735;
-unsigned int SERVO_MAX = 3335;
-unsigned int SERVO_MIN = 2185;
-unsigned int PW_CENTER = 2735;
+unsigned int SERVO_PW  = 2735; 
+unsigned int SERVO_MAX = 3335; //Value for the wheels to be left
+unsigned int SERVO_MIN = 2185; //Value for the wheels to be right
+unsigned int PW_CENTER = 2735; //Value for the wheels to be straight
 
 
 unsigned int heading;
@@ -31,7 +31,6 @@ char keypad;
 
 __sbit __at 0xB7 RUN;
 #define BATT_ADC_PIN 6
-	
 
 void Port_Init(void);
 void XBR0_Init(void);
@@ -39,10 +38,7 @@ void SMBus_Init(void);
 void ADC_Init(void);
 void Interrupt_Init(void);
 void PCA_Init(void);
-
 void motor_init(void);
-
-	
 void PCA_ISR( void ) __interrupt 9;
 	
 int Update_Value( int Constant, unsigned char incr, int maxval, int minval );
@@ -56,7 +52,6 @@ int pick_gain(void);
 void set_motor_speed(signed char speed);
 void pause(void);
 void get_and_display_status(void);
-
 int compassADJ( void );
 int set_range_adj(void);
 	
@@ -77,40 +72,40 @@ void main(void) {
 	motor_init();
 	
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
-	lcd_clear();
+	lcd_clear();		//clears the lcd of the bootup message
 
-	set_motor_speed( 120 );
+	set_motor_speed( 120 ); //initial start of the backwheels
 	while ( 1 ) {
 		run_stop = 0;
-		while ( !RUN ) {
-			if (run_stop == 0) {
-				set_motor_speed( 0 );
-				desired_heading = pick_heading() * 10;
-				range_gain = pick_gain();
+		while ( !RUN ) { //If the lcd input ss is in the accept position
+			if (run_stop == 0) { //If the user hasnt yet inputted values in the lcd
+				set_motor_speed( 0 ); //stops the car from moving
+				desired_heading = pick_heading() * 10; //sets the desired heading
+				range_gain = pick_gain(); //sets the gain
 				run_stop = 1;
 			}
 		}
 		
 		
-		if ( updateCompass ) {
-			if (range > 20) {
+		if ( updateCompass ) { //every 40ms
+			if (range > 20) { //if no obstacles
 				set_motor_speed( 120 );
 				heading = read_compass();
 				set_servo_PWM();
 			}
-			else {
+			else {	//if obstacle
 				set_motor_speed(0);
 			}
 			updateCompass = 0;
 		}
 		
-		if ( updateRanger ){
+		if ( updateRanger ){ //every 80 ms
 			range = read_ranger();
 			range_adj = set_range_adj();
 			updateRanger = 0;
 		}
 	
-		if( updateLCD ) {
+		if( updateLCD ) { //every 400 ms
 			get_and_display_status();
 			printf("Compass:\t%d\tRanger:\t%d\tcompass_adj:\t%d\trange_adj:\t%d\tServo_PW:\t%u\n",heading,range,compass_adj,range_adj,SERVO_PW);
 			updateLCD = 0;
@@ -137,12 +132,12 @@ void XBR0_Init(void) {
 }
 
 void Interrupt_Init(void){
-	EIE1 |= 0x08;
+	EIE1 |= 0x08; //enables interrupts
 	EA = 1;
 }
 
 void PCA_Init(void){
-	PCA0MD &= 0xF1;
+	PCA0MD &= 0xF1;	
 	PCA0MD |= 0x01;
 	PCA0CPM0 = 0xC2;
 	PCA0CPM2 = 0xC2;
@@ -171,96 +166,34 @@ void motor_init(void) {
 	
 	motor_min = PW1MS9;
 	motor_max = PW1MS1;
-/*
-	printf("Setting forward speed limit, press d when done.\n\r");
-	printf("press f for forward, s for reverse(slower)\n\r");
-	while (user_input!='d') {
-		user_input = getchar();
-		switch(user_input) {
-			case 'f':
-				if (PCA0CP2 > motor_min) PCA0CP2-=10;
-				break;
-			case 's':
-				if (PCA0CP2 < motor_max) PCA0CP2+=10;
-				break;
-		}
-	}
-	motor_min = PCA0CP2;
 
-	PCA0CP2	=PW1MS5;		//1.5ms
-	user_input = 0;
-	printf("Setting reverse speed limit, press d when done.\n\r");
-	printf("press f for forward, s for reverse(slower)\n\r");
-	while (user_input!='d') {
-		user_input = getchar();
-		switch(user_input) {
-			case 'f':
-				if (PCA0CP2 > motor_min) PCA0CP2-=10;
-				break;
-			case 's':
-				if (PCA0CP2 < motor_max) PCA0CP2+=10;
-				break;
-		}
-	}
-	motor_max = PCA0CP2;
-
-	PCA0CP2	=PW1MS5;
-	printf("Speed Setting Finish\n\r");*/
 }
 
 void PCA_ISR(void) __interrupt 9 {
 	if ( CF ) {
-		if ( PCACounter % 2 == 0 ) {
+		if ( PCACounter % 2 == 0 ) { //sets the 40 ms flag
 			updateCompass = 1;
 		}
-		if ( PCACounter % 4 == 0 ) {
+		if ( PCACounter % 4 == 0 ) {	//sets the 80 ms flag
 			updateRanger = 1;
 		}
-		if ( PCACounter % 20 == 0 ) {
+		if ( PCACounter % 20 == 0 ) {//sets the 400 ms flag
 			updateLCD = 1;
 		}
-		PCA0 = 28672;
+		PCA0 = 28672; //presets the buffer
 		CF = 0;
 		PCACounter++;
 	}
 }
-/*
-int Update_Value( int Constant, unsigned char incr, int maxval, int minval ){
-	//Local Variables
-	int deflt;
-	char input;
-	deflt = Constant;
-	while ( TRUE ) {
-		input = getchar();
-		if ( input == 'c' ) { 
-			Constant = deflt;
-		}
-		if ( input == 'i' ) {
-			Constant += incr;
-			if ( Constant > maxval ) {
-				Constant = maxval;
-			}
-		}
-		if ( input == 'd' ) {
-			Constant -= incr;
-			if (Constant < minval) {
-				Constant = minval;
-			}
-		}
-		if ( input == 'u' ) {
-			return Constant;
-		}
-	}
-}
-*/
-unsigned char read_AD_input( unsigned char n ) {
+
+unsigned char read_AD_input( unsigned char n ) { //reads the value on port 0 pin n
 	AMX1SL = n;
 	ADC1CN = (ADC1CN & ~0x20) | 0x10;
 	while (!(ADC1CN & 0x20));
 	return ADC1;
 }
 
-int read_compass( void ){
+int read_compass( void ){ //grabs the current compass heading
 	unsigned char addr = 0xC0;
 	unsigned char Data[2];
 	unsigned int heading;
@@ -269,25 +202,22 @@ int read_compass( void ){
 	return heading;
 }
 
-void set_servo_PWM( void ){
+void set_servo_PWM( void ){ //sets the front wheels direction
 	compass_adj = compassADJ();
-	SERVO_PW = (signed long)PW_CENTER + compass_adj + range_adj;
-	if (SERVO_PW < SERVO_MIN || SERVO_PW > SERVO_MAX ) {
-		if (range < 30 ) {
+	SERVO_PW = (signed long)PW_CENTER + compass_adj + range_adj; //turns the wheels based on compass and ranger
+	if (SERVO_PW < SERVO_MIN || SERVO_PW > SERVO_MAX ) { 
+		if (range < 30 ) { //prevents collisions
 			set_motor_speed(0);
 			return;
 		}
-    }
-	if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
+	}
+	if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;} //prevents the wheels from turning too far
 	else if (SERVO_PW > SERVO_MAX) {SERVO_PW = SERVO_MAX;}
 	PCA0CP0 = 0xFFFF - SERVO_PW;
-//	printf("Compass Adjust: %d\tRanger Adjust:%d\t\r\n",compass_adj,range_adj);
-	//set PCACP0 to the correct pulsewidth
-	//PCACP0 = 0xFFFF - PW
 }
 
 // ----------------------ranger-------------------
-int read_ranger (void) {
+int read_ranger (void) { //reads the current ranger value
 	unsigned const char command=0x51;
 	static unsigned short distance;
 	unsigned char raw_data[2];
@@ -300,7 +230,7 @@ int read_ranger (void) {
 	return distance;
 }
 
-int set_range_adj(void) {
+int set_range_adj(void) { 
 	const unsigned int MAX_RANGE=60;
 	if (range > MAX_RANGE ) return 0;
 	else return ( range_gain * (MAX_RANGE - range) );
@@ -319,11 +249,11 @@ void set_motor_speed(signed char speed) {
 }
 
 // --------------------UI-------------------------
-void get_and_display_status (void) {
+void get_and_display_status (void) { //Displays the battery voltage, heading, and current ranger value on the lcd
 	static unsigned int batt_volt;
 	static __bit update_batt=0;
 	update_batt = !update_batt;
-	if (update_batt) {
+	if (update_batt) { //Reads from the a/d conversion
 		batt_volt = ( (unsigned int)read_AD_input(BATT_ADC_PIN) * 150 ) / UCHAR_MAX;	//15.0 V ~ 255
 	}
 	lcd_clear();
@@ -338,7 +268,7 @@ unsigned int pick_heading(void) {
 	while(1){
 		lcd_clear();
 		lcd_print("Enter Heading Desired (Under 360)\nCurrent heading:%u",read_compass()/10);
-		while( counter < 3 ){
+		while( counter < 3 ){ //reads a 3 digit input from the lcd
 			while( read_keypad() == -1){ pause(); }
 			keypad = read_keypad();
 			lcd_clear();
@@ -361,14 +291,14 @@ unsigned int pick_heading(void) {
 			}
 		}		
 		lcd_clear();	
-		if( chosenHeading < 360 ) {
+		if( chosenHeading < 360 ) { //Prevents too high of values from being inputted
 			chosenHeading+=60;
 			break;
 		}
 	}	
 	
 	lcd_print("Heading Input Complete");
-	return (chosenHeading<360)?(chosenHeading):(chosenHeading-360);
+	return (chosenHeading<360)?(chosenHeading):(chosenHeading-360); //returns the desired heading
 }
 
 void pause(void) {
@@ -390,7 +320,7 @@ int pick_gain(void) {
 	while(1){
 		lcd_clear();
 		lcd_print("Input Desired\nGain (Under 999)");
-		while( counter < 3 ){
+		while( counter < 3 ){  //reads a 3 digit input from the lcd
 			while( read_keypad() == -1){ pause(); }
 			keypad = read_keypad();
 			lcd_clear();
@@ -412,7 +342,7 @@ int pick_gain(void) {
 			while(read_keypad() != -1){ pause();}
 		}		
 		lcd_clear();	
-		if( chosenGain <= 999 ) {
+		if( chosenGain <= 999 ) { //prevents too high of values from being inputted
 			break;
 		}
 	}	
