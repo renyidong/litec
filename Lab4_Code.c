@@ -82,6 +82,7 @@ void main(void) {
 	XBR0_Init();
 	SMBus_Init();
 	ADC_Init();
+	Accel_Init();
 	Interrupt_Init();
 	PCA_Init();
 	motor_init();
@@ -93,8 +94,8 @@ void main(void) {
 	while ( 1 ) {
 		if ( !RUN ) {
 			set_motor_speed( 0 );
-			feedback_gain = prompt_input("Input feedback gain",3);
-			sterring_gain = prompt_input("Input steering gain",3);
+			feedback_gain = prompt_input("Input feedback gain\n",3);
+			sterring_gain = prompt_input("Input steering gain\n",3);
 		}
 		while (!RUN){}
 		while (RUN) {
@@ -106,12 +107,11 @@ void main(void) {
 			}
 			if( flag_lcd ) {
 				get_and_display_status();
+				printf("X:%6d\tY:%6d\tServo:%d\tMotor%d\n\r",accl_x, accl_y,SERVO_PW,MOTOR_PW);
 				flag_lcd = 0;
 			}
 		}
-	
 	}
-	
 }
 
 
@@ -192,22 +192,22 @@ unsigned char read_AD_input( unsigned char n ) { //reads the value on port 0 pin
 
 // ================ acclerometer ====================
 void update_accl(void) {
-	char i2c_buffer[4] = {0,0,0,0};
+	signed char i2c_buffer[4] = {0,0,0,0};
 
 	i2c_read_data(0x30,0x27,i2c_buffer,1);
-	if ( ! (i2c_buffer[0]&0x03) ) return;
-
-	i2c_read_data(0x30,(0x27|0x80),i2c_buffer,4);
-	accl_x  = accl_x * 3 + i2c_buffer[1] * 4;
-	accl_y  = accl_y * 3 + i2c_buffer[3] * 4;
+	if ( (i2c_buffer[0]&0x03) != 0x03 ) return;
+	
+	i2c_read_data(0x30,(0x28|0x80),i2c_buffer,4);
+	//printf("XY\t%d\t%d\n\r",(short)i2c_buffer[1]*2,(short)i2c_buffer[3]*2);
+	accl_x  = ((long)accl_x * 7 + (short)i2c_buffer[1]*16)/8; //*16/8
+	accl_y  = ((long)accl_y * 7 + (short)i2c_buffer[3]*16)/8;
 }
 
 void set_speed(void) {
-	set_motor_speed( (-feedback_gain) * accl_y/64 );
+	set_motor_speed( feedback_gain * accl_y/64 );
 }
 
 void set_direction(void) {
-	unsigned int SERVO_PW;
 	SERVO_PW = PW_CENTER - sterring_gain * accl_x;
 	if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
 	else if (SERVO_PW > SERVO_MAX) {SERVO_PW = SERVO_MAX;}
@@ -284,14 +284,14 @@ signed int prompt_input (char * prompt, unsigned char digit) {
 		pause();
 		lcd_clear();
 		lcd_print(prompt);
-		lcd_print("%i\n",value);
+		lcd_print("%i",value);
 		while( read_keypad() == -1){ pause(); }
 		key = read_keypad();
 		while(read_keypad() != -1){ pause();}
 		switch (key) {
 			case '#':
 				if (value == 0) negative = 1;
-				else            return value;
+				else            digit_left = 0;
 				break;
 			case '*':
 				digit_left = digit;
@@ -305,6 +305,7 @@ signed int prompt_input (char * prompt, unsigned char digit) {
 				break;
 		}
 	}
+	lcd_clear();
 	return value;
 }
 
