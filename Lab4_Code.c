@@ -1,4 +1,3 @@
-
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +31,8 @@ unsigned int desired_heading;
 */
 unsigned int PCACounter = 0;
 unsigned int motor_min,motor_max;
-unsigned int feedback_gain, sterring_gain;
+unsigned int drive_p=0,    drive_i=0,    drive_d=0,    drive_t=0;
+unsigned int steering_p=0, steering_i=0, steering_d=0, steering_t=0;
 signed int accl_x, accl_y;
 
 /*
@@ -65,8 +65,7 @@ void pause(void);
 void get_and_display_status(void);
 signed int prompt_input (char * prompt, unsigned char digit);
 void update_accl(void);
-void set_speed(void);
-void set_direction(void);
+void set_output(void);
 
 int compassADJ( void );
 int set_range_adj(void);
@@ -94,20 +93,25 @@ void main(void) {
 	while ( 1 ) {
 		if ( !RUN ) {
 			set_motor_speed( 0 );
-			feedback_gain = prompt_input("Input feedback gain\n",3);
-			sterring_gain = prompt_input("Input steering gain\n",3);
+			drive_t = prompt_input("Input drive accleration target\n",3);
+			drive_p = prompt_input("Input drive proportional gain\n",3);
+			drive_d = prompt_input("Input drive derivative gain\n",3);
+			drive_i = prompt_input("Input drive integral gain\n",3);
+			steering_t = prompt_input("Input steering accleration target\n",3);
+			steering_p = prompt_input("Input steering proportional gain\n",3);
+			steering_d = prompt_input("Input steering derivative gain\n",3);
+			steering_i = prompt_input("Input steering integral gain\n",3);
+			while (!RUN){}
 		}
-		while (!RUN){}
 		while (RUN) {
 			if( flag_accl ) {
 				flag_accl = 0;
 				update_accl();
-				set_speed();
-				set_direction();
+				set_output();
 			}
 			if( flag_lcd ) {
 				get_and_display_status();
-				printf("X:%6d\tY:%6d\tServo:%d\tMotor%d\n\r",accl_x, accl_y,SERVO_PW,MOTOR_PW);
+				printf("X:%6d\tY:%6d\tServo:%6d\tMotor%6d\r\n", accl_x, accl_y, SERVO_PW, MOTOR_PW);
 				flag_lcd = 0;
 			}
 		}
@@ -196,22 +200,35 @@ void update_accl(void) {
 
 	i2c_read_data(0x30,0x27,i2c_buffer,1);
 	if ( (i2c_buffer[0]&0x03) != 0x03 ) return;
-	
+		// data not ready, not updating this times
+
 	i2c_read_data(0x30,(0x28|0x80),i2c_buffer,4);
 	//printf("XY\t%d\t%d\n\r",(short)i2c_buffer[1]*2,(short)i2c_buffer[3]*2);
 	accl_x  = ((long)accl_x * 7 + (short)i2c_buffer[1]*16)/8; //*16/8
 	accl_y  = ((long)accl_y * 7 + (short)i2c_buffer[3]*16)/8;
 }
 
-void set_speed(void) {
-	set_motor_speed( feedback_gain * accl_y/64 );
-}
+void set_output(void) {
+	static int last_x=0,last_y=0;
+	static int error_sum_x=0, error_sum_y=0;
+	int dx=accl_x-last_x, dy=accl_y-last_y;
+	int error_x=accl_x-steering_t, error_y= accl_y-drive_t;
 
-void set_direction(void) {
-	SERVO_PW = PW_CENTER - sterring_gain * accl_x;
-	if (SERVO_PW < SERVO_MIN) {SERVO_PW = SERVO_MIN;}
-	else if (SERVO_PW > SERVO_MAX) {SERVO_PW = SERVO_MAX;}
+	error_sum_x +=error_x;
+	error_sum_y +=error_y;
+
+	set_motor_speed( (  drive_p * error_y
+	                  + drive_d * dy
+	                  + drive_i * error_sum_y
+	                  + abs(error_x)          // assume drive_px=1 here
+	                 ) /64 );
+	SERVO_PW = PW_CENTER - steering_p * error_x
+	                     - steering_d * dx
+	                     - steering_i * error_sum_y;
+	if (SERVO_PW < SERVO_MIN)       SERVO_PW = SERVO_MIN;
+	else if (SERVO_PW > SERVO_MAX)  SERVO_PW = SERVO_MAX;
 	PCA0CP0 = 0xFFFF - SERVO_PW;
+	last_x = accl_x; last_y = accl_y;
 }
 
 /*
