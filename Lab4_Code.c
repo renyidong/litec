@@ -1,8 +1,8 @@
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <i2c.h>
 #include <limits.h>
+#include <i2c.h>
 
 #define PW1MS1		63508
 #define PW1MS5		62771
@@ -13,6 +13,7 @@ unsigned int MOTOR_PW  = 0;
 unsigned int SERVO_MAX = 3335; //Value for the wheels to be left
 unsigned int SERVO_MIN = 2185; //Value for the wheels to be right
 unsigned int PW_CENTER = 2735; //Value for the wheels to be straight
+int temp;
 
 /*
 unsigned int heading;
@@ -31,8 +32,8 @@ unsigned int desired_heading;
 */
 unsigned int PCACounter = 0;
 unsigned int motor_min,motor_max;
-unsigned int drive_p=0,    drive_i=0,    drive_d=0,    drive_t=0;
-unsigned int steering_p=0, steering_i=0, steering_d=0, steering_t=0;
+__idata unsigned int drive_p=0,    drive_i=0,    drive_d=0,    drive_t=0;
+__idata unsigned int steering_p=0, steering_i=0, steering_d=0, steering_t=0;
 signed int accl_x, accl_y;
 
 /*
@@ -88,19 +89,18 @@ void main(void) {
 	
 	while ( PCACounter < 50 );	//Waits 50 overflows (1.778 seconds)
 	lcd_clear();		//clears the lcd of the bootup message
-
 	set_motor_speed( 0 );
 	while ( 1 ) {
 		if ( !RUN ) {
 			set_motor_speed( 0 );
-			drive_t = prompt_input("Input drive accleration target\n",3);
+			//drive_t = prompt_input("Input drive accleration target\n",3); //should be 0
 			drive_p = prompt_input("Input drive proportional gain\n",3);
 			drive_d = prompt_input("Input drive derivative gain\n",3);
-			drive_i = prompt_input("Input drive integral gain\n",3);
-			steering_t = prompt_input("Input steering accleration target\n",3);
+			//drive_i = prompt_input("Input drive integral gain\n",3); //should be 0
+			//steering_t = prompt_input("Input steering accleration target\n",3); //should be 0
 			steering_p = prompt_input("Input steering proportional gain\n",3);
 			steering_d = prompt_input("Input steering derivative gain\n",3);
-			steering_i = prompt_input("Input steering integral gain\n",3);
+			//steering_i = prompt_input("Input steering integral gain\n",3); //should be 0
 			while (!RUN){}
 		}
 		while (RUN) {
@@ -111,7 +111,7 @@ void main(void) {
 			}
 			if( flag_lcd ) {
 				get_and_display_status();
-				printf("X:%6d\tY:%6d\tServo:%6d\tMotor%6d\r\n", accl_x, accl_y, SERVO_PW, MOTOR_PW);
+				printf("X:%6d\tY:%6d\tServo:%6d\tMotor%6d\ttemp:%d\r\n", accl_x, accl_y, SERVO_PW, MOTOR_PW, temp);
 				flag_lcd = 0;
 			}
 		}
@@ -213,18 +213,21 @@ void set_output(void) {
 	static int error_sum_x=0, error_sum_y=0;
 	int dx=accl_x-last_x, dy=accl_y-last_y;
 	int error_x=accl_x-steering_t, error_y= accl_y-drive_t;
-
-	error_sum_x +=error_x;
-	error_sum_y +=error_y;
-
-	set_motor_speed( (  drive_p * error_y
+	temp =   drive_p * error_y
 	                  + drive_d * dy
 	                  + drive_i * error_sum_y
-	                  + abs(error_x)          // assume drive_px=1 here
+	                  + drive_p * abs(error_x) ;
+	//printf("temp: %d", temp);
+	error_sum_x +=error_x;
+	error_sum_y +=error_y;
+	if(temp > 8128){temp = 8128;}
+	set_motor_speed( ( temp          // assume drive_px=1 here
 	                 ) /64 );
-	SERVO_PW = PW_CENTER - steering_p * error_x
-	                     - steering_d * dx
-	                     - steering_i * error_sum_y;
+	//set_motor_speed(127);
+	//PCA0CP2 = PW1MS9;
+	SERVO_PW = PW_CENTER - (  steering_p * error_x
+	                        + steering_d * dx
+	                        + steering_i * error_sum_y )/8;
 	if (SERVO_PW < SERVO_MIN)       SERVO_PW = SERVO_MIN;
 	else if (SERVO_PW > SERVO_MAX)  SERVO_PW = SERVO_MAX;
 	PCA0CP0 = 0xFFFF - SERVO_PW;
@@ -307,7 +310,7 @@ signed int prompt_input (char * prompt, unsigned char digit) {
 		while(read_keypad() != -1){ pause();}
 		switch (key) {
 			case '#':
-				if (value == 0) negative = 1;
+				if (value == 0 && negative == 0) negative = 1;
 				else            digit_left = 0;
 				break;
 			case '*':
